@@ -17,6 +17,11 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          # Two package.json files, so setup-node needs both lock files named
+          # explicitly or it looks only at the root and fails the cache step.
+          cache-dependency-path: |
+            package-lock.json
+            api/package-lock.json
       - run: npm ci
       - run: npm test
 
