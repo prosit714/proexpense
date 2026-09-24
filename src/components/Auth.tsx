@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../api.js';
 import { Field } from './ui.js';
 
@@ -66,6 +66,7 @@ export function PinLogin({ onSignedIn }: { onSignedIn: (mustChangePin: boolean) 
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [lockedFor, setLockedFor] = useState(0);
+  const busyRef = useRef(false);
 
   useEffect(() => {
     if (lockedFor <= 0) return;
@@ -73,17 +74,29 @@ export function PinLogin({ onSignedIn }: { onSignedIn: (mustChangePin: boolean) 
     return () => clearInterval(timer);
   }, [lockedFor]);
 
-  useEffect(() => {
-    if (pin.length !== 6 || busy || lockedFor > 0) return;
-    let cancelled = false;
-    setBusy(true);
-    api
-      .login(pin)
-      .then((result) => {
-        if (!cancelled) onSignedIn(result.mustChangePin);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
+  /**
+   * Submitting is an action, not an effect.
+   *
+   * This used to live in a useEffect keyed on the pin, which meant setBusy(true)
+   * re-ran the effect, the cleanup cancelled the request that had just started,
+   * and the success callback never fired — the server set the session cookie
+   * but the screen sat there until you reloaded. Reaching for an effect to
+   * respond to a user action is what caused that; calling the API from the
+   * handler that produced the sixth digit cannot cancel itself.
+   *
+   * The ref guards against a double submit, because state updates are async and
+   * two fast keypresses could otherwise both see busy === false.
+   */
+  const submit = useCallback(
+    async (candidate: string) => {
+      if (busyRef.current) return;
+      busyRef.current = true;
+      setBusy(true);
+      setMessage('');
+      try {
+        const result = await api.login(candidate);
+        onSignedIn(result.mustChangePin);
+      } catch (err) {
         const seconds =
           err instanceof ApiError && typeof err.detail?.retryAfterSeconds === 'number'
             ? err.detail.retryAfterSeconds
@@ -93,14 +106,21 @@ export function PinLogin({ onSignedIn }: { onSignedIn: (mustChangePin: boolean) 
         setLockedFor(seconds);
         setPin('');
         setTimeout(() => setError(false), 400);
-      })
-      .finally(() => {
-        if (!cancelled) setBusy(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [pin, busy, lockedFor, onSignedIn]);
+      } finally {
+        busyRef.current = false;
+        setBusy(false);
+      }
+    },
+    [onSignedIn],
+  );
+
+  const handleChange = useCallback(
+    (next: string) => {
+      setPin(next);
+      if (next.length === 6) void submit(next);
+    },
+    [submit],
+  );
 
   return (
     <div className="pin">
@@ -114,7 +134,7 @@ export function PinLogin({ onSignedIn }: { onSignedIn: (mustChangePin: boolean) 
       <p className="pin__message" role="status">
         {message}
       </p>
-      <PinPad value={pin} onChange={setPin} disabled={busy || lockedFor > 0} />
+      <PinPad value={pin} onChange={handleChange} disabled={busy || lockedFor > 0} />
     </div>
   );
 }
