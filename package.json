@@ -1,0 +1,30 @@
+{
+  "name": "proexpense",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared expense tracking for trips and dinners. Azure hosted, single user.",
+  "scripts": {
+    "sync:domain": "node scripts/sync-domain.mjs",
+    "prebuild": "npm run sync:domain",
+    "predev": "npm run sync:domain",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "tsx --test shared/domain/*.test.ts api/src/lib/*.test.ts",
+    "typecheck": "npm run sync:domain && tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0"
+  }
+}

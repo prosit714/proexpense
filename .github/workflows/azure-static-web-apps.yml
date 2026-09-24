@@ -1,0 +1,48 @@
+name: Deploy ProExpense
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+      # src/domain and api/src/domain are copies of shared/domain, committed so
+      # the Azure build never depends on a script outside api/. This fails the
+      # build if someone edited a copy or forgot to re-sync after editing the
+      # original.
+      - name: Check the domain copies are in sync
+        run: |
+          npm run sync:domain
+          git diff --exit-code -- src/domain api/src/domain \
+            || { echo "::error::Run 'npm run sync:domain' and commit the result."; exit 1; }
+
+      - run: npm run typecheck
+      - run: npm --prefix api ci && npm --prefix api run typecheck
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and deploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          app_location: "/"
+          api_location: "api"
+          output_location: "dist"

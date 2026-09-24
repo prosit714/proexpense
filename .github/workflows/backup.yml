@@ -1,0 +1,23 @@
+# Static Web Apps' managed Functions only support HTTP triggers, so the weekly
+# snapshot is a cron here calling a secret-protected endpoint. Same outcome as a
+# timer trigger, without leaving the free tier for a separate Function App.
+name: Weekly backup
+
+on:
+  schedule:
+    - cron: "17 3 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Snapshot events to blob storage
+        run: |
+          response=$(curl --silent --show-error --fail-with-body \
+            --request POST "${{ secrets.PROEXPENSE_URL }}/api/backup" \
+            --header "x-backup-secret: ${{ secrets.BACKUP_SECRET }}")
+          echo "$response"

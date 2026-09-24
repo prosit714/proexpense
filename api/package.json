@@ -1,0 +1,22 @@
+{
+  "name": "proexpense-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/src/index.js",
+  "scripts": {
+    "prebuild": "node ../scripts/sync-domain.mjs",
+    "build": "tsc",
+    "start": "func start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@azure/cosmos": "^4.2.0",
+    "@azure/functions": "^4.6.0",
+    "@azure/storage-blob": "^12.26.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

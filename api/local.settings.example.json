@@ -1,0 +1,12 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AzureWebJobsStorage": "",
+    "COSMOS_CONNECTION_STRING": "AccountEndpoint=https://...;AccountKey=...;",
+    "SESSION_SECRET": "generate-me-48-random-bytes",
+    "BACKUP_SECRET": "generate-me-too",
+    "BACKUP_STORAGE_CONNECTION_STRING": "DefaultEndpointsProtocol=https;AccountName=...",
+    "SECURE_COOKIES": "false"
+  }
+}
